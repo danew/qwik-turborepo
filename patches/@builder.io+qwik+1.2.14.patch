@@ -1,0 +1,99 @@
+diff --git a/node_modules/@builder.io/qwik/cli.cjs b/node_modules/@builder.io/qwik/cli.cjs
+index c02b408..48f44e2 100644
+--- a/node_modules/@builder.io/qwik/cli.cjs
++++ b/node_modules/@builder.io/qwik/cli.cjs
+@@ -4399,6 +4399,31 @@ function execaCommand(command, options) {
+ }
+ 
+ // packages/qwik/src/cli/build/run-build-command.ts
++async function printDistDebug(app) {
++  const path = app.rootDir + "/dist";
++  const stats = await import_node_fs2.default.promises.stat(path).catch(() => {});
++  console.log('%%%%%%%%%%%%%%%%%%%%%%%%')
++  console.log('%%%%%%%%%%%%%%%%%%%%%%%%')
++  console.log(`%%%%%% ${stats && stats.isDirectory && stats.isDirectory() ? '  EXISTS  ' : ' MISSING! '} %%%%%%`)
++  console.log('%%%%%%%%%%%%%%%%%%%%%%%%')
++  console.log('%%%%%%%%%%%%%%%%%%%%%%%%')
++}
++async function runInSeries(app, tasks) {
++	const results = [];
++
++	for (const task of tasks) {
++    await printDistDebug(app);
++    if (typeof task === 'function') {
++      results.push(await task());  
++    } else {
++      results.push(await task);
++    }
++	}
++
++	return results;
++}
+ async function runBuildCommand(app) {
+   const pkgJsonScripts = app.packageJson.scripts;
+   if (!pkgJsonScripts) {
+@@ -4474,7 +4499,7 @@ async function runBuildCommand(app) {
+     if (!copyScript.includes("--pretty")) {
+       copyScript += " --pretty";
+     }
+-    typecheck = execaCommand(copyScript, {
++    typecheck = () => execaCommand(copyScript, {
+       stdout: "inherit",
+       stderr: "inherit",
+       cwd: app.rootDir
+@@ -4504,7 +4529,7 @@ async function runBuildCommand(app) {
+   const step2 = [];
+   if (buildLibScript) {
+     const script = attachArg(buildLibScript, "mode", mode);
+-    const libBuild = execaCommand(script, {
++    const libBuild = () => execaCommand(script, {
+       stdout: "inherit",
+       stderr: "inherit",
+       cwd: app.rootDir,
+@@ -4528,7 +4553,7 @@ async function runBuildCommand(app) {
+   }
+   if (buildPreviewScript) {
+     const script = attachArg(buildPreviewScript, "mode", mode);
+-    const previewBuild = execaCommand(script, {
++    const previewBuild = () => execaCommand(script, {
+       stdout: "inherit",
+       stderr: "inherit",
+       cwd: app.rootDir,
+@@ -4551,8 +4576,9 @@ async function runBuildCommand(app) {
+     step2.push(previewBuild);
+   }
+   if (buildServerScript) {
++    //#
+     const script = attachArg(buildServerScript, "mode", mode);
+-    const serverBuild = execaCommand(script, {
++    const serverBuild = () => execaCommand(script, {
+       stdout: "inherit",
+       stderr: "inherit",
+       cwd: app.rootDir,
+@@ -4575,7 +4601,7 @@ async function runBuildCommand(app) {
+     step2.push(serverBuild);
+   }
+   if (buildStaticScript) {
+-    const staticBuild = execaCommand(buildStaticScript, {
++    const staticBuild = () => execaCommand(buildStaticScript, {
+       stdout: "inherit",
+       stderr: "inherit",
+       cwd: app.rootDir,
+@@ -4601,7 +4627,7 @@ async function runBuildCommand(app) {
+     step2.push(typecheck);
+   }
+   if (lint) {
+-    const lintBuild = execaCommand(lint, {
++    const lintBuild = () => execaCommand(lint, {
+       stdout: "inherit",
+       stderr: "inherit",
+       cwd: app.rootDir,
+@@ -4620,7 +4646,7 @@ async function runBuildCommand(app) {
+     step2.push(lintBuild);
+   }
+   if (step2.length > 0) {
+-    await Promise.all(step2).then((steps) => {
++    await runInSeries(app, step2).then((steps) => {
+       steps.forEach((step) => {
+         if (step.stdout) {
+           console.log("");

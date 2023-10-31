@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Qwik",
+  "extends": "./base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "target": "ES2017",
+    "module": "ES2020",
+    "lib": ["es2020", "DOM", "WebWorker", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "jsxImportSource": "@builder.io/qwik",
+    "resolveJsonModule": true,
+    "incremental": true,
+    "outDir": "tmp",
+    "types": ["node", "vite/client"]
+  },
+  "include": ["src"]
+}
